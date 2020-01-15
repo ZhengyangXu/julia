@@ -360,19 +360,26 @@ void jl_compute_field_offsets(jl_datatype_t *st)
         // if we have no fields, we can trivially skip the rest
         if (st == jl_symbol_type || st == jl_string_type) {
             // opaque layout - heap-allocated blob
-            static const jl_datatype_layout_t opaque_byte_layout = {0, 1, -1, 1, 0, 0};
-            st->layout = &opaque_byte_layout;
+            static jl_datatype_layout_t *opaque_byte_layout = NULL;
+            if (opaque_byte_layout == NULL)
+                opaque_byte_layout = jl_get_layout(0, 1, 1, 0, NULL, (uint32_t[]){-1});
+            st->layout = opaque_byte_layout;
             return;
         }
         else if (st == jl_simplevector_type || st->name == jl_array_typename) {
-            static const jl_datatype_layout_t opaque_ptr_layout = {0, 1, -1, sizeof(void*), 0, 0};
-            st->layout = &opaque_ptr_layout;
+            static jl_datatype_layout_t *opaque_ptr_layout = NULL;
+            if (opaque_ptr_layout == NULL)
+                opaque_ptr_layout =
+                    jl_get_layout(0, 1, sizeof(void*), 0, NULL, (uint32_t[]){-1});
+            st->layout = opaque_ptr_layout;
             return;
         }
         else {
             // reuse the same layout for all singletons
-            static const jl_datatype_layout_t singleton_layout = {0, 0, -1, 1, 0, 0};
-            st->layout = &singleton_layout;
+            static jl_datatype_layout_t *singleton_layout = NULL;
+            if (singleton_layout == NULL)
+                singleton_layout = jl_get_layout(0, 0, 1, 0, NULL, NULL);
+            st->layout = singleton_layout;
         }
     }
     else {
